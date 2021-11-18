@@ -2,14 +2,18 @@
   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "siteName": {
-      "type": "string"
+    "storeName": {
+      "type": "string",
+      "metadata": {
+        "description": "Store name"
+      }
     },
-    "hostingPlanName": {
-      "type": "string"
-    },
-    "siteLocation": {
-      "type": "string"
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
     },
     "sku": {
       "type": "string",
@@ -20,20 +24,28 @@
       ],
       "defaultValue": "F1"
     },
-    "repoUrl": {
-      "type": "string"
-    },
+    // "repoUrl": {
+    //   "type": "string"
+    // },
     "branch": {
       "type": "string",
-      "defaultValue": "master"
+      "defaultValue": "master",
+      "metadata": {
+        "description": "Repository Branch"
+      }
     }
   },
+  "variables": {
+        "hostingPlanName": "[concat(parameters('storeName'), '-plan')]",
+        "appServiceName": "[concat(parameters('storeName'), '-app')]",
+        "repoUrl": "https://github.com/brunobertechini/wordpress-azure.git",
+    },
   "resources": [
     {
       "apiVersion": "2015-08-01",
-      "name": "[parameters('hostingPlanName')]",
+      "name": "[variables('hostingPlanName')]",
       "type": "Microsoft.Web/serverFarms",
-      "location": "[parameters('siteLocation')]",
+      "location": "[parameters('location')]",
       "properties": {
         
       },
@@ -44,15 +56,15 @@
     },
     {
       "apiVersion": "2015-08-01",
-      "name": "[parameters('siteName')]",
+      "name": "[variables('appServiceName')]",
       "type": "Microsoft.Web/Sites",
-      "location": "[parameters('siteLocation')]",
+      "location": "[parameters('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Web/serverFarms/', parameters('hostingPlanName'))]"
+        "[concat('Microsoft.Web/serverFarms/', variables('hostingPlanName'))]"
       ],
       "properties": {
-        "name": "[parameters('siteName')]",
-        "serverFarmId": "[parameters('hostingPlanName')]",
+        "name": "[variables('appServiceName')]",
+        "serverFarmId": "[variables('hostingPlanName')]",
         "siteConfig": {
           "localMySqlEnabled": true,
            "appSettings": [
@@ -69,10 +81,10 @@
           "name": "web",
           "type": "sourcecontrols",
           "dependsOn": [
-            "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
+            "[resourceId('Microsoft.Web/Sites', variables('appServiceName'))]"
           ],
           "properties": {
-            "RepoUrl": "[parameters('repoUrl')]",
+            "RepoUrl": "[variables('repoUrl')]",
             "branch": "[parameters('branch')]",
             "IsManualIntegration": true
           }
@@ -82,7 +94,7 @@
           "name": "web",
           "type": "config",
           "dependsOn": [
-            "[concat('Microsoft.Web/sites/', parameters('siteName'))]"
+            "[concat('Microsoft.Web/sites/', variables('appServiceName'))]"
           ],
           "properties": {
             "phpVersion": "7.4"
